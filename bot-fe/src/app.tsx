@@ -1,10 +1,11 @@
-import ChatPage from './chat-page';
 import { Toaster } from '@/components/ui';
+
+import { ChatContainer } from './chat/ChatContainer';
 
 function App() {
   return (
     <>
-      <ChatPage />
+      <ChatContainer />
       <Toaster />
     </>
   );

@@ -1,5 +1,6 @@
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { VercelRequest, VercelResponse } from '@vercel/node';
 import Airtable from 'airtable';
 
 // Airtable setup
@@ -12,46 +13,33 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '')
   .map(origin => origin.trim())
   .filter(Boolean);
 
-export async function OPTIONS(request: Request) {
-  const origin = request.headers.get('origin') || '';
-  const headers: HeadersInit = {
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-
-  if (allowedOrigins.includes(origin)) {
-    headers['Access-Control-Allow-Origin'] = origin;
-    headers['Vary'] = 'Origin';
-  }
-
-  return new Response(null, { status: 204, headers });
-}
-
-export async function POST(request: Request) {
-  const origin = request.headers.get('origin') || '';
-  const corsHeaders: HeadersInit = {};
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const origin = req.headers.origin || '';
   
   if (allowedOrigins.includes(origin)) {
-    corsHeaders['Access-Control-Allow-Origin'] = origin;
-    corsHeaders['Vary'] = 'Origin';
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+
+  // Handle CORS preflight request
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.status(204).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { clientId, message } = req.body;
+
+  if (!clientId || !message) {
+    return res.status(400).json({ error: 'Missing clientId or message' });
   }
 
   try {
-    const { clientId, message } = await request.json();
-
-    if (!clientId || !message) {
-      return new Response(
-        JSON.stringify({ error: 'Missing clientId or message' }), 
-        { 
-          status: 400, 
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders 
-          } 
-        }
-      );
-    }
-
     // 1. Fetch system prompt from Airtable
     const records = await base(`${process.env.AIRTABLE_APP_NAME!}`)
       .select({
@@ -62,16 +50,7 @@ export async function POST(request: Request) {
 
     const client = records[0];
     if (!client) {
-      return new Response(
-        JSON.stringify({ error: `Client ${clientId} not found` }),
-        { 
-          status: 404, 
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders 
-          } 
-        }
-      );
+      return res.status(404).json({ error: `Client ${clientId} not found` });
     }
 
     const systemPrompt = client.get('system_prompt') as string;
@@ -85,26 +64,31 @@ export async function POST(request: Request) {
       ],
     });
 
-    // Return streaming response with CORS headers
-    return result.toTextStreamResponse({
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        ...corsHeaders,
-      },
-    });
+    // Set streaming headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Convert the AI SDK stream to Node.js response
+    const stream = result.toDataStream();
+    const reader = stream.getReader();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        // Convert Uint8Array to string and write to response
+        const chunk = new TextDecoder().decode(value);
+        res.write(chunk);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    res.end();
   } catch (error) {
     console.error(error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to handle chat' }),
-      { 
-        status: 500, 
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders 
-        } 
-      }
-    );
+    res.status(500).json({ error: 'Failed to handle chat' });
   }
 }

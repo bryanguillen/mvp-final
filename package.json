@@ -1,0 +1,9 @@
+{
+  "name": "@testlyy/monorepo",
+  "private": true,
+  "workspaces": [
+    "bot-fe",
+    "vercel-functions",
+    "static-site"
+  ]
+}

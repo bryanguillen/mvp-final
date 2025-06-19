@@ -1,21 +1,10 @@
-import { OpenAI } from 'openai';
-import { VercelRequest, VercelResponse } from '@vercel/node';
-
-import { AirtableBase } from './lib/airtable';
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import Airtable from 'airtable';
 
 // Airtable setup
-const airtableBase = new AirtableBase({
-  apiKey: process.env.AIRTABLE_API_KEY!,
-  baseId: process.env.AIRTABLE_BASE_ID!,
-});
-
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
+Airtable.configure({ apiKey: process.env.AIRTABLE_API_KEY! });
+const base = Airtable.base(process.env.AIRTABLE_BASE_ID!);
 
 // Parse env origin list once at module level
 const allowedOrigins = (process.env.CORS_ORIGIN || '')
@@ -23,32 +12,48 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '')
   .map(origin => origin.trim())
   .filter(Boolean);
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const origin = req.headers.origin || '';
+export async function OPTIONS(request: Request) {
+  const origin = request.headers.get('origin') || '';
+  const headers: HeadersInit = {
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
   if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Vary', 'Origin');
+    headers['Access-Control-Allow-Origin'] = origin;
+    headers['Vary'] = 'Origin';
   }
 
-  // Handle CORS preflight request
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.status(204).end(); // No content
-    return;
-  }
+  return new Response(null, { status: 204, headers });
+}
 
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const { clientId, message } = req.body;
-
-  if (!clientId || !message) {
-    return res.status(400).json({ error: 'Missing clientId or message' });
+export async function POST(request: Request) {
+  const origin = request.headers.get('origin') || '';
+  const corsHeaders: HeadersInit = {};
+  
+  if (allowedOrigins.includes(origin)) {
+    corsHeaders['Access-Control-Allow-Origin'] = origin;
+    corsHeaders['Vary'] = 'Origin';
   }
 
   try {
+    const { clientId, message } = await request.json();
+
+    if (!clientId || !message) {
+      return new Response(
+        JSON.stringify({ error: 'Missing clientId or message' }), 
+        { 
+          status: 400, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
+      );
+    }
+
     // 1. Fetch system prompt from Airtable
-    const records = await airtableBase.get(`${process.env.AIRTABLE_APP_NAME!}`)
+    const records = await base(`${process.env.AIRTABLE_APP_NAME!}`)
       .select({
         filterByFormula: `{client_id} = '${clientId}'`,
         maxRecords: 1,
@@ -56,43 +61,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .firstPage();
 
     const client = records[0];
-    if (!client) throw new Error(`Client ${clientId} not found`);
+    if (!client) {
+      return new Response(
+        JSON.stringify({ error: `Client ${clientId} not found` }),
+        { 
+          status: 404, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
+      );
+    }
 
-    // Test response to verify Airtable data
-    return res.status(200).json({
-      message: 'Airtable data retrieved successfully',
-      clientId: clientId,
-      clientData: {
-        id: client.id,
-        fields: client.fields,
-      },
-      recordsFound: records.length,
+    const systemPrompt = client.get('system_prompt') as string;
+
+    // 2. Call OpenAI with streaming using AI SDK
+    const result = streamText({
+      model: openai('gpt-4o'),
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: message },
+      ],
     });
 
-    // const systemPrompt = client.get('system_prompt') as string;
-
-    // // 2. Call OpenAI with streaming
-    // const stream = await openai.chat.completions.create({
-    //   model: 'gpt-4o',
-    //   stream: true,
-    //   messages: [
-    //     { role: 'system', content: systemPrompt },
-    //     { role: 'user', content: message },
-    //   ],
-    // });
-
-    // res.setHeader('Content-Type', 'text/event-stream');
-    // res.setHeader('Cache-Control', 'no-cache');
-    // res.setHeader('Connection', 'keep-alive');
-
-    // for await (const chunk of stream) {
-    //   const content = chunk.choices[0]?.delta?.content || '';
-    //   res.write(`data: ${content}\n\n`);
-    // }
-
-    // res.end();
+    // Return streaming response with CORS headers
+    return result.toTextStreamResponse({
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        ...corsHeaders,
+      },
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to handle chat' });
+    return new Response(
+      JSON.stringify({ error: 'Failed to handle chat' }),
+      { 
+        status: 500, 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
+    );
   }
 }

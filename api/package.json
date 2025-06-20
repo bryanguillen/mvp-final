@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "ts-node server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -11,15 +13,19 @@
   "description": "",
   "dependencies": {
     "@ai-sdk/openai": "^1.0.2",
+    "@types/express": "^5.0.3",
     "@vercel/node": "^3.0.0",
     "ai": "^4.0.44",
     "airtable": "^0.12.2",
-    "next": "^15.3.3"
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/node": "^24.0.3",
     "@types/react": "^19.1.8",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
-  },
-  "type": "module"
+  }
 }

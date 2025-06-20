@@ -1,17 +1,35 @@
-# Chat App
+# Bot Frontend
 
-A minimal AI chat application built with React, TypeScript, Vite, and ShadCN UI components. Features a clean, medspa-friendly interface with message bubbles, auto-expanding textarea, and simulated streaming responses.
+A modern React chat application with real-time AI streaming, built with TypeScript, Vite, and shadcn/ui components. Features a clean, responsive interface optimized for conversational AI experiences.
 
-## Features
+## 🚀 Tech Stack
 
-- Full-screen chat interface
-- Auto-expanding input (1-3 lines)
-- Message bubbles with role-based styling
-- Mock streaming AI responses
-- Auto-scroll to newest messages
-- Responsive design with soft, elegant styling
+- **React 19** with TypeScript
+- **Vite** for fast development and building
+- **Tailwind CSS 4.x** for styling
+- **shadcn/ui** components (Radix UI primitives)
+- **Lucide React** for icons
+- **Sonner** for toast notifications
 
-## Getting Started
+## ✨ Features
+
+- **Real-time Chat Interface**: Clean, modern chat UI with message streaming
+- **Auto-expanding Input**: Textarea grows from 1-3 lines automatically
+- **Message Bubbles**: Role-based styling for user and assistant messages
+- **Streaming Responses**: Real-time AI response rendering
+- **Auto-scroll**: Automatically scrolls to newest messages
+- **Responsive Design**: Mobile-friendly with elegant styling
+- **Accessibility**: Built with Radix UI primitives for proper a11y
+- **Toast Notifications**: User feedback with Sonner
+- **Theme Support**: Light/dark theme compatibility
+
+## 🛠️ Development
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+
+### Getting Started
 
 ```bash
 # Install dependencies
@@ -22,12 +40,10 @@ npm run dev
 
 # Build for production
 npm run build
+
+# Preview production build
+npm run preview
+
+# Run linter
+npm run lint
 ```
-
-## Tech Stack
-
-- **React 19** + **TypeScript**
-- **Vite** for fast development
-- **Tailwind CSS** for styling
-- **ShadCN UI** components
-- **Lucide React** for icons

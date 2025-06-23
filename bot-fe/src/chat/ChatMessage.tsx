@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 
 interface ChatMessageProps {
   content: string;
-  role: 'user' | 'assistant';
+  role: 'data' | 'user' | 'system' | 'assistant';
   isStreaming?: boolean;
 }
 

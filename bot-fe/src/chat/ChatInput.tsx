@@ -1,15 +1,26 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send } from 'lucide-react';
 
 interface ChatInputProps {
-  onSendMessage: (message: string) => void;
+  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  handleSubmit: (
+    event?: {
+      preventDefault?: () => void;
+    },
+    chatRequestOptions?: any
+  ) => void;
   isDisabled?: boolean;
+  input: string;
 }
 
-export function ChatInput({ onSendMessage, isDisabled = false }: ChatInputProps) {
-  const [message, setMessage] = useState('');
+export function ChatInput({
+  handleInputChange,
+  handleSubmit,
+  input,
+  isDisabled = false,
+}: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea with max height of 3 lines
@@ -22,15 +33,7 @@ export function ChatInput({ onSendMessage, isDisabled = false }: ChatInputProps)
       const maxHeight = lineHeight * 3; // 3 lines max
       textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
     }
-  }, [message]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (message.trim() && !isDisabled) {
-      onSendMessage(message.trim());
-      setMessage('');
-    }
-  };
+  }, [input]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -44,8 +47,8 @@ export function ChatInput({ onSendMessage, isDisabled = false }: ChatInputProps)
       <form onSubmit={handleSubmit} className="flex items-end gap-3">
         <Textarea
           ref={textareaRef}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          value={input}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="Type your message..."
           disabled={isDisabled}
@@ -54,7 +57,7 @@ export function ChatInput({ onSendMessage, isDisabled = false }: ChatInputProps)
         />
         <Button
           type="submit"
-          disabled={!message.trim() || isDisabled}
+          disabled={!input.trim() || isDisabled}
           size="icon"
           className="shrink-0 bg-rose-500 hover:bg-rose-600 text-white rounded-xl h-[44px] w-[44px]"
         >

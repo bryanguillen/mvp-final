@@ -57,7 +57,6 @@ async function getPrompt(clientId: string): Promise<string | null> {
   }
 
   const systemPrompt = record.fields?.system_prompt as string | undefined ?? null;
-  console.log(`System prompt for ${clientId}:`, systemPrompt);
   
   return systemPrompt;
 }
@@ -101,8 +100,15 @@ const chatHandler: RequestHandler<{}, any, ChatRequestBody> = async (
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+
       const chunk = new TextDecoder().decode(value);
-      res.write(chunk);
+
+      // Only extract `"0":"..."` lines
+      const matches = [...chunk.matchAll(/0:"(.*?)"/g)];
+
+      for (const [, token] of matches) {
+        res.write(token); // send only the actual text
+      }
     }
 
     res.end();

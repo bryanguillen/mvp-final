@@ -18,6 +18,9 @@ export function ChatContainer() {
   });
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  console.log('messages', messages);
+  console.log('status', status);
+
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     if (bottomRef.current) {
@@ -54,11 +57,14 @@ export function ChatContainer() {
               </div>
             )}
 
-            {messages.map((message) => (
-              <ChatMessage key={message.id} content={message.content} role={message.role} />
+            {messages.map((message, index) => (
+              <ChatMessage
+                key={message.id}
+                content={message.content}
+                role={message.role}
+                isStreaming={isStreaming && index === messages.length - 1}
+              />
             ))}
-
-            {isStreaming && <ChatMessage content="Typing..." role="assistant" isStreaming={true} />}
 
             <div ref={bottomRef} />
           </div>

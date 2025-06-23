@@ -4,11 +4,11 @@ import { cn } from '@/lib/utils';
 
 interface ChatMessageProps {
   content: string;
+  isStreaming: boolean;
   role: 'data' | 'user' | 'system' | 'assistant';
-  isStreaming?: boolean;
 }
 
-export function ChatMessage({ content, role, isStreaming = false }: ChatMessageProps) {
+export function ChatMessage({ content, isStreaming, role }: ChatMessageProps) {
   const isUser = role === 'user';
 
   return (

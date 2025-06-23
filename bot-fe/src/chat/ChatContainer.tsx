@@ -59,9 +59,20 @@ export function ChatContainer() {
                 key={message.id}
                 content={message.content}
                 role={message.role}
-                isStreaming={isStreaming && index === messages.length - 1}
+                isStreaming={
+                  isStreaming && index === messages.length - 1 && message.role === 'assistant'
+                }
               />
             ))}
+
+            {status === 'submitted' && (
+              <ChatMessage
+                key="assistant-placeholder"
+                content=""
+                role="assistant"
+                isStreaming={true}
+              />
+            )}
 
             <div ref={bottomRef} />
           </div>

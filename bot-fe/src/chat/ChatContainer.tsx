@@ -18,9 +18,6 @@ export function ChatContainer() {
   });
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  console.log('messages', messages);
-  console.log('status', status);
-
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     if (bottomRef.current) {

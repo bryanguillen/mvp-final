@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown';
+
 import { cn } from '@/lib/utils';
 
 interface ChatMessageProps {
@@ -20,10 +22,10 @@ export function ChatMessage({ content, role, isStreaming = false }: ChatMessageP
           isStreaming && 'animate-pulse'
         )}
       >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">
-          {content}
+        <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-0 prose-pre:bg-gray-100 prose-pre:p-2 prose-pre:rounded-md">
+          <ReactMarkdown>{content}</ReactMarkdown>
           {isStreaming && <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1" />}
-        </p>
+        </div>
       </div>
     </div>
   );
